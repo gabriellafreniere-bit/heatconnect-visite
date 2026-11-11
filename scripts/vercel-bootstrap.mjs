@@ -58,7 +58,7 @@ const vars = {
   VERCEL_PROJECT_ID: project.id,
   VERCEL_TEAM_ID: TEAM || null,
   VERCEL_PROJECT_NAME: NAME,
-  DRIVE_ROOT_FOLDER_ID: args["drive-root"] || process.env.DRIVE_ROOT_FOLDER_ID || null,
+  DRIVE_ROOT_FOLDER_ID: args["drive-root"] || process.env.DRIVE_ROOT_FOLDER_ID || "1kKEXC0KziKS2HUfC31ZPtfTtIRi-hWbj",
   CLAUDE_MODEL: "claude-opus-5-5",
 };
 const body = Object.entries(vars).filter(([, val]) => val).map(([key, value]) => ({ key, value: String(value), type: "encrypted", target: ["production", "preview", "development"] }));
