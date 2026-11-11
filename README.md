@@ -119,3 +119,11 @@ lib/claude.js           Appels Claude (schémas JSON, images, synthèse)
 public/hc-core.js       Schéma du formulaire, complétude, rapport (partagé client et serveur)
 public/app.js, app.css  Application cliente
 ```
+
+## Mise en service automatisée
+
+`scripts/vercel-bootstrap.mjs` crée le projet Vercel, le relie au dépôt GitHub, pose les variables de base et déploie. Il imprime un **lien de mise en service** (`/setup?key=…`) : l'administrateur y colle l'ID client Google, la clé Anthropic et le code Zoho ; l'application vérifie chaque clé, l'enregistre dans Vercel et redémarre. Après « Terminer », le lien est désactivé et la page `/setup` reste accessible aux courriels de `ADMIN_EMAILS` une fois connectés.
+
+```bash
+VERCEL_TOKEN=... node scripts/vercel-bootstrap.mjs --repo firstblock/heatconnect-visite --drive-root <id du dossier Drive>
+```
