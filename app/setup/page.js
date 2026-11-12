@@ -21,6 +21,17 @@ const HTML = `
   <p class="lead">Trois clés à créer, une seule fois, puis l'application est prête pour toute l'équipe. Chaque étape prend quelques minutes. Les clés sont vérifiées, enregistrées dans Vercel et l'application redémarre toute seule.</p>
   <div id="status" class="msg"></div>
 
+  <div class="step" id="s-vercel">
+    <h2><span class="num">0</span> Relier l'application à Vercel</h2>
+    <ol>
+      <li>Ouvrez <a href="https://vercel.com/account/settings/tokens" target="_blank" rel="noopener">vercel.com/account/settings/tokens</a>.</li>
+      <li>« Create », nom « HeatConnect Visite », portée « Full Account », expiration « No Expiration » (ou 1 an), puis copiez le jeton ci-dessous. Il permet à cette page d'enregistrer les clés suivantes à votre place.</li>
+    </ol>
+    <div class="f"><div class="fl">Jeton Vercel</div><input class="inp" id="v_token" placeholder="vcp_… ou chaîne de 24 caractères" autocomplete="off"></div>
+    <div class="actions"><button class="btn primary" type="button" id="b_vercel">Vérifier et relier Vercel</button></div>
+    <div class="msg" id="m_vercel"></div>
+  </div>
+
   <div class="step" id="s-google">
     <h2><span class="num">1</span> Connexion Google (Drive et Gmail)</h2>
     <ol>
@@ -79,9 +90,10 @@ const HTML = `
   const msg=(id,t,cls)=>{const e=$('#m_'+id);e.textContent=t;e.className='msg '+(cls||'');};
   const mark=(id,ok)=>{$('#s-'+id).classList.toggle('ok',!!ok);};
   document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{const t=$('#'+b.dataset.copy).textContent;try{await navigator.clipboard.writeText(t);b.textContent='Copié';setTimeout(()=>b.textContent='Copier',1500);}catch(e){}});
-  async function load(){try{const s=await api('GET');$('#redirect').textContent=s.redirectUri;mark('google',s.configured.google);mark('anthropic',s.configured.anthropic);mark('zoho',s.configured.zoho);$('#status').textContent=s.vercel?'':'Attention : Vercel n’est pas relié ; les clés devront être copiées à la main dans Vercel.';}
+  async function load(){try{const s=await api('GET');$('#redirect').textContent=s.redirectUri;mark('vercel',s.vercel);mark('google',s.configured.google);mark('anthropic',s.configured.anthropic);mark('zoho',s.configured.zoho);$('#status').textContent=s.vercel?'':'Commencez par l’étape 0 : tant que Vercel n’est pas relié, les clés ne peuvent pas être enregistrées automatiquement.';}
     catch(e){$('#status').textContent='Accès refusé : ce lien de mise en service n’est plus valide.';$('#status').className='msg err';}}
   const run=async(id,body,btn)=>{btn.disabled=true;msg(id,'Vérification…');try{const r=await api('POST',body);msg(id,'Enregistré'+(r.redeployed?' ; l’application redémarre (environ une minute).':'.'),'ok');mark(id,true);}catch(e){msg(id,e.message,'err');}finally{btn.disabled=false;}};
+  $('#b_vercel').onclick=e=>run('vercel',{vercel:{token:$('#v_token').value}},e.currentTarget);
   $('#b_google').onclick=e=>run('google',{google:{id:$('#g_id').value,secret:$('#g_secret').value}},e.currentTarget);
   $('#b_anthropic').onclick=e=>run('anthropic',{anthropic:{key:$('#a_key').value}},e.currentTarget);
   $('#b_zoho').onclick=e=>run('zoho',{zoho:{clientId:$('#z_id').value,clientSecret:$('#z_secret').value,code:$('#z_code').value}},e.currentTarget);

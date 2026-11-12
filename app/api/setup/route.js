@@ -4,7 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { auth } from "@/auth";
 import { HttpError, handle } from "@/lib/session";
-import { vercelLinked, setEnv, deleteEnv, redeploy } from "@/lib/vercel";
+import { vercelLinked, setEnv, deleteEnv, redeploy, resolveProject, useCredentials } from "@/lib/vercel";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -20,6 +20,16 @@ async function authorize(req) {
   throw new HttpError(403, "Accès refusé");
 }
 
+function projectName(req) {
+  if (process.env.VERCEL_PROJECT_NAME) return process.env.VERCEL_PROJECT_NAME;
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL || "";
+  const m = prod.match(/^([a-z0-9-]+)\.vercel\.app$/i);
+  if (m) return m[1];
+  const h = host(req);
+  const m2 = h.match(/^([a-z0-9-]+?)(?:-[a-z0-9]{9}-[a-z0-9-]+)?\.vercel\.app$/i);
+  return m2 ? m2[1] : "heatconnect-visite";
+}
+
 function host(req) {
   return (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0].trim();
 }
@@ -32,6 +42,7 @@ export const GET = handle(async (req) => {
     host: h,
     redirectUri: `https://${h}/api/auth/callback/google`,
     vercel: vercelLinked(),
+    projectName: projectName(req),
     configured: {
       google: !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
       anthropic: !!process.env.ANTHROPIC_API_KEY,
@@ -66,6 +77,22 @@ export const POST = handle(async (req) => {
   const body = await req.json().catch(() => ({}));
   const vars = {};
   const done = [];
+  if (body.vercel?.token) {
+    const token = String(body.vercel.token).trim();
+    const name = String(body.vercel.project || projectName(req)).trim();
+    const c = await resolveProject(token, name);
+    useCredentials({ token: c.token, project: c.project, team: c.team });
+    vars.VERCEL_TOKEN = c.token;
+    vars.VERCEL_PROJECT_ID = c.project;
+    vars.VERCEL_TEAM_ID = c.team || "";
+    vars.VERCEL_PROJECT_NAME = c.name;
+    vars.AUTH_TRUST_HOST = "true";
+    vars.ALLOWED_EMAIL_DOMAINS = process.env.ALLOWED_EMAIL_DOMAINS || "firstblock.com";
+    vars.ADMIN_EMAILS = process.env.ADMIN_EMAILS || "gabriel.lafreniere@firstblock.com";
+    vars.DRIVE_ROOT_FOLDER_ID = process.env.DRIVE_ROOT_FOLDER_ID || "1kKEXC0KziKS2HUfC31ZPtfTtIRi-hWbj";
+    vars.CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
+    done.push("Vercel (" + c.account + ")");
+  }
   if (body.google?.id || body.google?.secret) {
     const id = String(body.google.id || "").trim();
     const secret = String(body.google.secret || "").trim();
@@ -104,6 +131,7 @@ export const POST = handle(async (req) => {
     done.push("Drive");
   }
   if (!done.length) throw new HttpError(400, "Rien à enregistrer");
+  if (vars.VERCEL_TEAM_ID === "") delete vars.VERCEL_TEAM_ID;
   if (!vercelLinked()) return Response.json({ ok: false, saved: false, done, message: "Vercel n'est pas relié : copiez ces variables à la main dans Vercel > Settings > Environment Variables.", vars: Object.keys(vars) });
   await setEnv(vars);
   let redeployed = false;
