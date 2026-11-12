@@ -2,6 +2,7 @@
 // les enregistre dans Vercel et relance le déploiement. Protégée par SETUP_TOKEN (lien
 // unique) ou par une connexion Google d'un administrateur (ADMIN_EMAILS).
 import Anthropic from "@anthropic-ai/sdk";
+import { randomBytes } from "node:crypto";
 import { auth } from "@/auth";
 import { HttpError, handle } from "@/lib/session";
 import { vercelLinked, setEnv, deleteEnv, redeploy, resolveProject, useCredentials } from "@/lib/vercel";
@@ -87,6 +88,7 @@ export const POST = handle(async (req) => {
     vars.VERCEL_TEAM_ID = c.team || "";
     vars.VERCEL_PROJECT_NAME = c.name;
     vars.AUTH_TRUST_HOST = "true";
+    if (!process.env.AUTH_SECRET) vars.AUTH_SECRET = randomBytes(32).toString("base64");
     vars.ALLOWED_EMAIL_DOMAINS = process.env.ALLOWED_EMAIL_DOMAINS || "firstblock.com";
     vars.ADMIN_EMAILS = process.env.ADMIN_EMAILS || "gabriel.lafreniere@firstblock.com";
     vars.DRIVE_ROOT_FOLDER_ID = process.env.DRIVE_ROOT_FOLDER_ID || "1kKEXC0KziKS2HUfC31ZPtfTtIRi-hWbj";

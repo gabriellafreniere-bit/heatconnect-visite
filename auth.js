@@ -42,6 +42,8 @@ async function refreshGoogleToken(token) {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  // Avant la mise en service, SETUP_TOKEN sert de secret provisoire ; /setup pose ensuite un AUTH_SECRET fort.
+  secret: process.env.AUTH_SECRET || process.env.SETUP_TOKEN || "heatconnect-non-configure",
   session: { strategy: "jwt", maxAge: 30 * 24 * 3600 },
   providers: [
     Google({
