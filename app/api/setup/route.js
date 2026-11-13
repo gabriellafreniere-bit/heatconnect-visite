@@ -60,6 +60,7 @@ export const GET = handle(async (req) => {
   const gcheck = new URL(req.url).searchParams.get("check") === "google" ? await googleCheck() : undefined;
   return Response.json({
     googleCheck: gcheck,
+    lastAuthError: globalThis.__hcLastAuthError || null,
     mode,
     host: h,
     redirectUri: `https://${h}/api/auth/callback/google`,

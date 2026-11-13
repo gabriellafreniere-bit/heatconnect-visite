@@ -44,7 +44,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   logger: {
     error(err) {
-      console.error("[auth]", err?.name || "", err?.message || err, err?.cause?.err?.message || err?.cause?.message || "");
+      const detail = [err?.name || "", err?.message || String(err), err?.cause?.err?.message || err?.cause?.message || ""].filter(Boolean).join(" | ");
+      console.error("[auth]", detail);
+      globalThis.__hcLastAuthError = { at: new Date().toISOString(), detail: detail.slice(0, 600) };
     },
     warn(code) {
       console.warn("[auth]", code);
