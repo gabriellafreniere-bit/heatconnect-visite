@@ -35,10 +35,31 @@ function host(req) {
   return (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0].trim();
 }
 
+// Vérifie l'ID client et le secret Google sans connexion : Google répond invalid_client
+// si le couple est faux, invalid_grant si le couple est bon (le code bidon est rejeté).
+async function googleCheck() {
+  if (!process.env.AUTH_GOOGLE_ID || !process.env.AUTH_GOOGLE_SECRET) return "absent";
+  try {
+    const r = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: process.env.AUTH_GOOGLE_ID, client_secret: process.env.AUTH_GOOGLE_SECRET, grant_type: "authorization_code", code: "verification", redirect_uri: "https://localhost/" }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (j.error === "invalid_client") return "invalid_client";
+    if (j.error === "invalid_grant" || j.error === "redirect_uri_mismatch") return "ok";
+    return j.error || "inconnu";
+  } catch (e) {
+    return "erreur";
+  }
+}
+
 export const GET = handle(async (req) => {
   const mode = await authorize(req);
   const h = host(req);
+  const gcheck = new URL(req.url).searchParams.get("check") === "google" ? await googleCheck() : undefined;
   return Response.json({
+    googleCheck: gcheck,
     mode,
     host: h,
     redirectUri: `https://${h}/api/auth/callback/google`,
